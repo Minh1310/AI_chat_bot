@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot Pet Shop</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    #chat-icon {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #ffc0cb;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    #chat-box {
+      display: none;
+      flex-direction: column;
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 320px;
+      height: 460px;
+      background: #fffafc;
+      border: 2px solid #ffc0cb;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      z-index: 1000;
+    }
+
+    #chat-header {
+      background-color: #ffc0cb;
+      padding: 12px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    #chat-messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background-color: #fff0f5;
+    }
+
+    .msg {
+      margin: 8px 0;
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 20px;
+      line-height: 1.4;
+    }
+
+    .user-msg {
+      align-self: flex-end;
+      background-color: #d1f0ff;
+      color: #333;
+      border-bottom-right-radius: 0;
+      text-align: right;
+      margin-left: auto;
+    }
+
+    .bot-msg {
+      align-self: flex-start;
+      background-color: #ffe4e1;
+      color: #333;
+      border-bottom-left-radius: 0;
+      text-align: left;
+      margin-right: auto;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .bot-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-image: url('https://cdn-icons-png.flaticon.com/512/616/616408.png'); /* Cute paw icon */
+      background-size: cover;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    #chat-input {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background-color: #fff;
+    }
+
+    #message {
+      flex: 1;
+      padding: 10px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+    }
+
+    #send-btn {
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 20px;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Chat Icon -->
+<button id="chat-icon" onclick="toggleChat()">💬</button>
+
+<!-- Chat Box -->
+<div id="chat-box">
+  <div id="chat-header">🐾 Hỗ trợ từ PetShop</div>
+  <div id="chat-messages"></div>
+  <div id="chat-input">
+    <input id="message" type="text" placeholder="Gõ câu hỏi cho Boss..." onkeydown="handleKey(event)">
+    <button id="send-btn" onclick="sendMessage()">Gửi</button>
+  </div>
+</div>
+
+<script>
+  function toggleChat() {
+    const chatBox = document.getElementById("chat-box");
+    chatBox.style.display = chatBox.style.display === "none" ? "flex" : "none";
+  }
+
+  function handleKey(event) {
+    if (event.key === "Enter") sendMessage();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById("message");
+    const chat = document.getElementById("chat-messages");
+    const text = input.value.trim();
+    if (!text) return;
+
+    // User message
+    chat.innerHTML += `<div class="msg user-msg">${text}</div>`;
+    input.value = "";
+    chat.scrollTop = chat.scrollHeight;
+
+    try {
+      const res = await fetch("http://localhost:5000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      const data = await res.json();
+      const botReply = data.response || "Xin lỗi Sen, Boss chưa hiểu. 🐾";
+
+      chat.innerHTML += `
+        <div class="msg bot-msg">
+          <div class="bot-avatar"></div>
+          <div><b>Boss:</b> ${botReply}</div>
+        </div>`;
+      chat.scrollTop = chat.scrollHeight;
+    } catch (error) {
+      chat.innerHTML += `
+        <div class="msg bot-msg">
+          <div class="bot-avatar"></div>
+          <div><b>Boss:</b> Oops! Có lỗi xảy ra khi gửi tin nhắn 🐾</div>
+        </div>`;
+      chat.scrollTop = chat.scrollHeight;
+    }
+  }
+</script>
+
+</body>
+</html>

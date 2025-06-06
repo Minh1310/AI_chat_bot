@@ -1,0 +1,251 @@
+{
+  "intents": [
+    {
+      "intent": "greet",
+      "examples": [
+        "Chào bạn!",
+        "Xin chào shop ơi",
+        "Hello, mình muốn hỏi chút"
+      ],
+      "responses": [
+        "Chào bạn! Mình là trợ lý tư vấn quần áo thú cưng đây. Bạn muốn tìm sản phẩm nào cho bé nhà mình nhỉ? 😊",
+        "Xin chào bạn! Rất vui được giúp bạn tìm đồ cho thú cưng. Bé nhà bạn là chó hay mèo, mình tư vấn ngay nhé! 🐾"
+      ]
+    },
+    {
+      "intent": "inquire_product",
+      "examples": [
+        "Shop có áo cho chó không?",
+        "Mình muốn tìm váy cho mèo size S",
+        "Áo cho chó poodle giá bao nhiêu?",
+        "Có áo màu đỏ cho mèo không?",
+        "Quần cho chó size L đâu nhỉ?"
+      ],
+      "entities": [
+        { "entity": "pet_type", "values": ["chó", "mèo"] },
+        { "entity": "clothing_type", "values": ["áo", "váy", "quần", "yếm"] },
+        { "entity": "size", "values": ["S", "M", "L"] },
+        { "entity": "color", "values": ["đỏ", "xanh", "vàng", "đen", "hồng", "trắng"] }
+      ],
+      "responses": [
+        "Dạ, shop có {clothing_type} cho {pet_type} nè! Size {size} và màu {color} có sẵn, giá từ 150k-300k. Bạn muốn mình gửi hình chi tiết không? 😊",
+        "Mình có {clothing_type} cho {pet_type} size {size} đây, màu {color} đang hot lắm! Mua hôm nay còn được giảm 10% nữa, bạn có muốn chốt đơn luôn không? 🐾"
+      ]
+    },
+    {
+      "intent": "ask_price",
+      "examples": [
+        "Áo cho chó giá bao nhiêu?",
+        "Váy mèo size M giá thế nào?",
+        "Quần cho chó poodle bao nhiêu tiền?"
+      ],
+      "entities": [
+        { "entity": "pet_type", "values": ["chó", "mèo"] },
+        { "entity": "clothing_type", "values": ["áo", "váy", "quần", "yếm"] },
+        { "entity": "size", "values": ["S", "M", "L"] }
+      ],
+      "responses": [
+        "{clothing_type} cho {pet_type} size {size} có giá từ 150k-250k tùy mẫu nha. Hiện tại đang có ưu đãi giảm 10% nếu mua hôm nay, bạn chốt đơn luôn nhé? 😊",
+        "Dạ, {clothing_type} size {size} cho {pet_type} giá khoảng 200k. Nếu mua combo 2 sản phẩm còn được tặng thêm phụ kiện xinh lắm, bạn có muốn xem không? 🐾"
+      ]
+    },
+    {
+      "intent": "request_suggestion",
+      "examples": [
+        "Tư vấn áo cho chó nhà mình đi",
+        "Mèo nhà mình nên mặc váy màu gì?",
+        "Chó poodle nên mặc gì cho đẹp?",
+        "Bé nhà mình 6 tháng tuổi, mặc gì hợp?"
+      ],
+      "entities": [
+        { "entity": "pet_type", "values": ["chó", "mèo"] },
+        { "entity": "clothing_type", "values": ["áo", "váy", "quần", "yếm"] },
+        { "entity": "age", "values": ["3 tháng", "6 tháng", "1 năm"] }
+      ],
+      "responses": [
+        "Bé {pet_type} nhà mình {age} thì hợp với {clothing_type} màu đỏ hoặc vàng, vừa nổi bật vừa dễ thương! Mình có mẫu giá từ 150k, bạn xem thử nhé? 😊",
+        "Mèo nhà bạn hợp với {clothing_type} màu xanh hoặc hồng phấn lắm nha! Shop có mẫu size S và M, giá 200k, đang hot trend tháng này. Bạn muốn chốt đơn luôn không? 🐾"
+      ]
+    },
+    {
+      "intent": "ask_material",
+      "examples": [
+        "Áo cho chó làm bằng gì vậy?",
+        "Váy mèo có chất liệu cotton không?",
+        "Quần này có thoáng không?"
+      ],
+      "entities": [
+        { "entity": "pet_type", "values": ["chó", "mèo"] },
+        { "entity": "clothing_type", "values": ["áo", "váy", "quần", "yếm"] },
+        { "entity": "material", "values": ["cotton", "voan", "jeans", "len"] }
+      ],
+      "responses": [
+        "Dạ, {clothing_type} cho {pet_type} được làm từ {material}, rất mềm và thoáng, bé mặc sẽ thoải mái lắm! Bạn có muốn mình gửi hình chi tiết không? 😊",
+        "{clothing_type} này làm bằng {material}, chất liệu cao cấp, không gây kích ứng cho bé đâu nha. Mua hôm nay còn được giảm 10%, bạn chốt nhé? 🐾"
+      ]
+    },
+    {
+      "intent": "ask_promotion",
+      "examples": [
+        "Shop có khuyến mãi không?",
+        "Có giảm giá gì không vậy?",
+        "Mua 2 cái có được giảm không?"
+      ],
+      "responses": [
+        "Dạ, hiện tại shop đang có chương trình giảm 10% cho tất cả sản phẩm nếu mua hôm nay nha! Mua 2 sản phẩm còn được tặng thêm phụ kiện xinh xắn nữa. Bạn chọn mẫu nào để mình chốt đơn nhé? 😊",
+        "Shop đang có ưu đãi đặc biệt: Mua 2 sản phẩm giảm 15%, tặng thêm 1 vòng cổ dễ thương cho bé. Bạn muốn mình tư vấn mẫu nào không? 🐾"
+      ]
+    },
+    {
+      "intent": "ask_return_policy",
+      "examples": [
+        "Shop có đổi trả không?",
+        "Mua xong không vừa thì sao?",
+        "Có được đổi màu khác không?"
+      ],
+      "responses": [
+        "Dạ, shop có chính sách đổi trả trong 7 ngày nếu sản phẩm không vừa hoặc có lỗi nha. Bạn cứ yên tâm mua, mình sẽ hỗ trợ hết mình! 😊",
+        "Nếu bé mặc không vừa, bạn có thể đổi size hoặc màu khác trong 7 ngày nhé. Shop sẽ hỗ trợ phí ship đổi trả nếu có lỗi từ shop. Bạn muốn chốt đơn mẫu nào trước không? 🐾"
+      ]
+    },
+    {
+      "intent": "ask_care_instructions",
+      "examples": [
+        "Áo này giặt thế nào vậy?",
+        "Váy cho mèo có giặt máy được không?",
+        "Làm sao để bảo quản quần cho chó lâu bền?",
+        "Phơi đồ này có bị phai màu không?"
+      ],
+      "entities": [
+        { "entity": "clothing_type", "values": ["áo", "váy", "quần", "yếm"] }
+      ],
+      "responses": [
+        "Dạ, {clothing_type} này nên giặt tay với nước mát để giữ màu và form nha. Tránh dùng chất tẩy mạnh và phơi nơi thoáng mát, không phơi trực tiếp dưới nắng gắt để tránh phai màu. 😊",
+        "Bạn có thể giặt {clothing_type} bằng máy ở chế độ nhẹ, nhưng tốt nhất là giặt tay để bền hơn. Sau khi giặt, phơi ngang ở nơi thoáng mát nhé! Mua hôm nay còn được giảm 10%, bạn chốt đơn luôn không? 🐾"
+      ]
+    },
+    {
+      "intent": "ask_delivery_time",
+      "examples": [
+        "Giao hàng mất bao lâu vậy shop?",
+        "Mình ở Hà Nội, bao giờ nhận được hàng?",
+        "Phí ship bao nhiêu vậy?",
+        "Hôm nay mua thì khi nào tới?"
+      ],
+      "entities": [
+        { "entity": "location", "values": ["Hà Nội", "TP.HCM", "Đà Nẵng", "Cần Thơ"] }
+      ],
+      "responses": [
+        "Dạ, bạn ở {location} thì sẽ nhận hàng trong 1-2 ngày nếu đặt hôm nay nha! Phí ship chỉ 30k thôi, hoặc miễn phí nếu đơn từ 500k. Bạn chốt đơn luôn để mình giao sớm nhé? 😊",
+        "Hôm nay là thứ Bảy, nếu bạn đặt bây giờ thì thứ Hai hoặc thứ Ba hàng sẽ tới {location}. Phí ship 30k, nhưng nếu mua trên 500k thì miễn phí ship nha! Bạn chọn mẫu nào để mình chốt đơn nào? 🐾"
+      ]
+    },
+    {
+      "intent": "not_found",
+      "examples": [
+        "Shop có áo size XL không?",
+        "Mình tìm váy màu tím cho mèo mà không thấy",
+        "Quần cho chó size L màu xanh đâu nhỉ?"
+      ],
+      "responses": [
+        "Dạ, hiện tại shop chưa có mẫu đó. Nhưng mình có thể gợi ý màu khác hoặc size gần giống nhé? Ví dụ như {clothing_type} màu {color} size {size}, giá chỉ 200k thôi! 😅",
+        "Xin lỗi bạn nha, mẫu đó bên mình chưa có. Bạn có muốn thử tìm màu khác không, hoặc mình gợi ý một mẫu hot trend hiện nay cho bé nhà bạn nhé? 🐾"
+      ]
+    },
+    {
+      "intent": "thank",
+      "examples": [
+        "Cảm ơn shop nhé",
+        "Thanks bạn nhiều",
+        "Cám ơn nha"
+      ],
+      "responses": [
+        "Không có gì đâu bạn! Nếu cần thêm gì, cứ nhắn mình nhé! Chúc bé nhà bạn thật xinh với đồ mới nha! 😄",
+        "Cảm ơn bạn đã tin tưởng shop! Mong bé nhà bạn thích món đồ mới. Có gì cần hỗ trợ, bạn nhắn mình ngay nhé! 🐾"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Áo thun cotton cho chó",
+      "pet_type": "chó",
+      "size": "S",
+      "color": "đỏ",
+      "material": "cotton",
+      "price": 150000
+    },
+    {
+      "id": 2,
+      "name": "Váy voan cho mèo",
+      "pet_type": "mèo",
+      "size": "M",
+      "color": "hồng",
+      "material": "voan",
+      "price": 200000
+    },
+    {
+      "id": 3,
+      "name": "Quần jeans cho chó",
+      "pet_type": "chó",
+      "size": "M",
+      "color": "xanh",
+      "material": "jeans",
+      "price": 250000
+    },
+    {
+      "id": 4,
+      "name": "Áo len cho mèo",
+      "pet_type": "mèo",
+      "size": "S",
+      "color": "vàng",
+      "material": "len",
+      "price": 180000
+    },
+    {
+      "id": 5,
+      "name": "Yếm cotton cho chó",
+      "pet_type": "chó",
+      "size": "L",
+      "color": "trắng",
+      "material": "cotton",
+      "price": 220000
+    },
+    {
+      "id": 6,
+      "name": "Áo thun cho mèo",
+      "pet_type": "mèo",
+      "size": "M",
+      "color": "đen",
+      "material": "cotton",
+      "price": 170000
+    },
+    {
+      "id": 7,
+      "name": "Váy len cho chó",
+      "pet_type": "chó",
+      "size": "S",
+      "color": "hồng",
+      "material": "len",
+      "price": 190000
+    },
+    {
+      "id": 8,
+      "name": "Áo khoác cho chó",
+      "pet_type": "chó",
+      "size": "M",
+      "color": "xanh",
+      "material": "polyester",
+      "price": 280000
+    },
+    {
+      "id": 9,
+      "name": "Yếm voan cho mèo",
+      "pet_type": "mèo",
+      "size": "S",
+      "color": "trắng",
+      "material": "voan",
+      "price": 210000
+    }
+  ]
+}
