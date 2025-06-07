@@ -6,22 +6,32 @@ import os
 import random
 import unicodedata
 from collections import deque
+import time
 
 app = Flask(__name__)
 CORS(app)
 
-# Lazy loading model (only load when first request comes)
+# Lazy loading model with caching
 model = None
 tokenizer = None
 generator = None
+model_loaded_at = 0
 
 def load_model():
-    global model, tokenizer, generator
-    if model is None:
-        model_name = "vinai/bartpho-word"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-        generator = pipeline("text2text-generation", model=model, tokenizer=tokenizer)
+    global model, tokenizer, generator, model_loaded_at
+    current_time = time.time()
+    # Cache model for 1 hour to avoid reloading
+    if model is None or (current_time - model_loaded_at > 3600):
+        try:
+            model_name = "vinai/bartpho-word"
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+            generator = pipeline("text2text-generation", model=model, tokenizer=tokenizer, max_new_tokens=50)
+            model_loaded_at = current_time
+            print("Model loaded successfully.")
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            return None
     return generator
 
 # Load and validate training data
@@ -30,13 +40,12 @@ try:
         training_data = json.load(f)
     if not isinstance(training_data.get("intents"), list):
         raise ValueError("JSON file must contain an 'intents' list")
-    print("JSON file loaded successfully. Patterns for 'inquire_product':", 
-          [p for intent in training_data["intents"] if intent["intent"] == "inquire_product" for p in intent["examples"]])
+    print("JSON file loaded successfully.")
 except Exception as e:
     print(f"Error loading JSON: {e}")
     training_data = {"intents": [], "products": []}
 
-# Lưu trữ ngữ cảnh (giới hạn 3 lượt trước)
+# Lưu trữ ngữ cảnh
 context_history = deque(maxlen=3)
 
 # ==================== INTENT DETECTION ====================
@@ -45,13 +54,12 @@ def detect_intent(user_input, context=None):
     context_text = " ".join(context) if context else ""
     combined_input = f"{context_text} {user_input_normalized}".strip()
     
-    # Ưu tiên kiểm tra intent inquire_product nếu có từ khóa sản phẩm
     product_keywords = ["có", "tìm", "đâu", "có không"]
     clothing_keywords = ["áo", "váy", "quần", "yếm", "áo khoác"]
     if any(pk in combined_input for pk in product_keywords) and any(ck in combined_input for ck in clothing_keywords):
         intent = next((i for i in training_data.get("intents", []) if i["intent"] == "inquire_product"), None)
         if intent:
-            print(f"Matched intent: inquire_product (prioritized)")  # Debug log
+            print(f"Matched intent: inquire_product (prioritized)")
             price_max, color, category, pet_type, size, material, location = extract_query_info(user_input)
             response = random.choice(intent["responses"])
             response = response.replace("{clothing_type}", category or "quần áo")
@@ -60,16 +68,15 @@ def detect_intent(user_input, context=None):
             response = response.replace("{color}", color or "đẹp")
             return response
 
-    # Kiểm tra các intent khác
     for intent in training_data.get("intents", []):
         if intent["intent"] == "inquire_product":
-            continue  # Đã xử lý ở trên
+            continue
         for pattern in intent.get("examples", []):
             pattern_normalized = unicodedata.normalize("NFKC", pattern.lower().strip())
             pattern_keywords = set(pattern_normalized.split())
             if any(keyword in combined_input for keyword in pattern_keywords) and \
                not (any(pk in combined_input for pk in product_keywords) and any(ck in combined_input for ck in clothing_keywords)):
-                print(f"Matched intent: {intent['intent']} with pattern: '{pattern}'")  # Debug log
+                print(f"Matched intent: {intent['intent']} with pattern: '{pattern}'")
                 price_max, color, category, pet_type, size, material, location = extract_query_info(user_input)
                 response = random.choice(intent["responses"])
                 response = response.replace("{clothing_type}", category or "quần áo")
@@ -82,7 +89,7 @@ def detect_intent(user_input, context=None):
                 response = response.replace("{price}", str(price_max or 200000))
                 response = response.replace("{season}", "phù hợp")
                 return response
-    print(f"No intent matched for input: '{user_input_normalized}'")  # Debug log
+    print(f"No intent matched for input: '{user_input_normalized}'")
     return None
 
 # ==================== PRODUCT FILTERING ====================
@@ -176,6 +183,8 @@ def generate_response(user_input):
     global generator
     if generator is None:
         generator = load_model()
+        if generator is None:
+            return "Xin lỗi, hệ thống đang gặp lỗi. Vui lòng thử lại sau! 😔"
 
     user_input_normalized = unicodedata.normalize("NFKC", user_input.strip())
     user_input_lower = user_input_normalized.lower()
@@ -218,7 +227,7 @@ def generate_response(user_input):
         if intent:
             response = random.choice(intent["responses"])
             response = response.replace("{location}", location or "bạn")
-            return response or f"Bạn ở {location or 'khu vực của bạn'} thì hàng sẽ tới trong 1-2 ngày, phí ship 30k, miễn phí cho đơn từ 500k nha! 😊 (Hôm nay là 07/06/2025, 03:32 PM)"
+            return response or f"Bạn ở {location or 'khu vực của bạn'} thì hàng sẽ tới trong 1-2 ngày, phí ship 30k, miễn phí cho đơn từ 500k nha! 😊 (Hôm nay là 07/06/2025, 04:20 PM)"
 
     products = recommend_products(price_max, color, category, pet_type, size, material)
     if products:
@@ -235,8 +244,11 @@ def serve_index():
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.json.get("message", "").strip()
+    if not user_input:
+        return jsonify({"response": "Vui lòng nhập tin nhắn! 😊"}), 400
+    start_time = time.time()
     response = generate_response(user_input)
-    print(f"User input: '{user_input}', Response: '{response}'")  # Debug log
+    print(f"User input: '{user_input}', Response: '{response}', Processing time: {time.time() - start_time:.2f}s")
     return jsonify({"response": response})
 
 if __name__ == "__main__":
