@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 import json
 import os
 import random
@@ -23,9 +23,9 @@ def load_model():
     # Cache model for 1 hour to avoid reloading
     if model is None or (current_time - model_loaded_at > 3600):
         try:
-            model_name = "distilbert-base-uncased"
+            model_name = "xlm-roberta-base"
             tokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+            model = AutoModelForSequenceClassification.from_pretrained(model_name)
             generator = pipeline("text2text-generation", model=model, tokenizer=tokenizer, max_new_tokens=50)
             model_loaded_at = current_time
             print("Model loaded successfully.")
