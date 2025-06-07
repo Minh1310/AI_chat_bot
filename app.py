@@ -5,6 +5,7 @@ import json
 import os
 import random
 import unicodedata
+from collections import deque
 
 app = Flask(__name__)
 CORS(app)
@@ -26,14 +27,39 @@ except Exception as e:
     print(f"Error loading JSON: {e}")
     training_data = {"intents": [], "products": []}
 
+# Lưu trữ ngữ cảnh (giới hạn 3 lượt trước)
+context_history = deque(maxlen=3)
+
 # ==================== INTENT DETECTION ====================
-def detect_intent(user_input):
+def detect_intent(user_input, context=None):
     user_input_normalized = unicodedata.normalize("NFKC", user_input.lower().strip())
+    context_text = " ".join(context) if context else ""
+    combined_input = f"{context_text} {user_input_normalized}".strip()
+    
+    # Ưu tiên kiểm tra intent inquire_product nếu có từ khóa sản phẩm
+    product_keywords = ["có", "tìm", "đâu", "có không"]
+    clothing_keywords = ["áo", "váy", "quần", "yếm", "áo khoác"]
+    if any(pk in combined_input for pk in product_keywords) and any(ck in combined_input for ck in clothing_keywords):
+        intent = next((i for i in training_data.get("intents", []) if i["intent"] == "inquire_product"), None)
+        if intent:
+            print(f"Matched intent: inquire_product (prioritized)")  # Debug log
+            price_max, color, category, pet_type, size, material, location = extract_query_info(user_input)
+            response = random.choice(intent["responses"])
+            response = response.replace("{clothing_type}", category or "quần áo")
+            response = response.replace("{pet_type}", pet_type or "thú cưng")
+            response = response.replace("{size}", size or "phù hợp")
+            response = response.replace("{color}", color or "đẹp")
+            return response
+
+    # Kiểm tra các intent khác
     for intent in training_data.get("intents", []):
+        if intent["intent"] == "inquire_product":
+            continue  # Đã xử lý ở trên
         for pattern in intent.get("examples", []):
             pattern_normalized = unicodedata.normalize("NFKC", pattern.lower().strip())
-            print(f"Checking pattern: '{pattern_normalized}' against input: '{user_input_normalized}'")  # Debug log
-            if pattern_normalized == user_input_normalized or pattern_normalized in user_input_normalized:
+            pattern_keywords = set(pattern_normalized.split())
+            if any(keyword in combined_input for keyword in pattern_keywords) and \
+               not (any(pk in combined_input for pk in product_keywords) and any(ck in combined_input for ck in clothing_keywords)):
                 print(f"Matched intent: {intent['intent']} with pattern: '{pattern}'")  # Debug log
                 price_max, color, category, pet_type, size, material, location = extract_query_info(user_input)
                 response = random.choice(intent["responses"])
@@ -43,6 +69,9 @@ def detect_intent(user_input):
                 response = response.replace("{color}", color or "đẹp")
                 response = response.replace("{location}", location or "bạn")
                 response = response.replace("{age}", "phù hợp")
+                response = response.replace("{material}", material or "chất liệu tốt")
+                response = response.replace("{price}", str(price_max or 200000))
+                response = response.replace("{season}", "phù hợp")
                 return response
     print(f"No intent matched for input: '{user_input_normalized}'")  # Debug log
     return None
@@ -52,12 +81,20 @@ def recommend_products(price_max=None, color=None, category=None, pet_type=None,
     products = training_data.get("products", [])
     results = []
     for product in products:
-        if (price_max is None or product["price"] <= price_max) and \
-           (color is None or product["color"].lower() == color.lower() if color else True) and \
-           (category is None or product["name"].lower().find(category.lower()) != -1 if category else True) and \
-           (pet_type is None or product["pet_type"].lower() == pet_type.lower() if pet_type else True) and \
-           (size is None or product["size"].lower() == size.lower() if size else True) and \
-           (material is None or product["material"].lower() == material.lower() if material else True):
+        match = True
+        if price_max is not None and product["price"] > price_max:
+            match = False
+        if color and product["color"].lower() != color.lower():
+            match = False
+        if category and product["name"].lower().find(category.lower()) == -1:
+            match = False
+        if pet_type and product["pet_type"].lower() != pet_type.lower():
+            match = False
+        if size and product["size"].lower() != size.lower():
+            match = False
+        if material and product["material"].lower() != material.lower():
+            match = False
+        if match:
             results.append(product)
     return results
 
@@ -77,14 +114,17 @@ def extract_query_info(user_input):
         if color_words:
             color = color_words[0]
 
-    if "áo" in user_input_lower:
-        category = "áo"
-    elif "váy" in user_input_lower:
-        category = "váy"
-    elif "quần" in user_input_lower:
-        category = "quần"
-    elif "yếm" in user_input_lower:
-        category = "yếm"
+    if any(key in user_input_lower for key in ["áo", "váy", "quần", "yếm", "áo khoác"]):
+        if "áo" in user_input_lower:
+            category = "áo"
+        elif "váy" in user_input_lower:
+            category = "váy"
+        elif "quần" in user_input_lower:
+            category = "quần"
+        elif "yếm" in user_input_lower:
+            category = "yếm"
+        elif "áo khoác" in user_input_lower:
+            category = "áo khoác"
 
     if "chó" in user_input_lower:
         pet_type = "chó"
@@ -97,6 +137,8 @@ def extract_query_info(user_input):
         size = "M"
     elif "size l" in user_input_lower or " l " in user_input_lower:
         size = "L"
+    elif "size xl" in user_input_lower or " xl " in user_input_lower:
+        size = "XL"
 
     if "cotton" in user_input_lower:
         material = "cotton"
@@ -106,6 +148,8 @@ def extract_query_info(user_input):
         material = "jeans"
     elif "len" in user_input_lower:
         material = "len"
+    elif "polyester" in user_input_lower:
+        material = "polyester"
 
     if "hà nội" in user_input_lower:
         location = "Hà Nội"
@@ -123,39 +167,45 @@ def generate_response(user_input):
     user_input_normalized = unicodedata.normalize("NFKC", user_input.strip())
     user_input_lower = user_input_normalized.lower()
 
+    # Cập nhật ngữ cảnh
+    context_history.append(user_input_normalized)
+    context = list(context_history)
+
     # Handle vague or short inputs
     if len(user_input_normalized) <= 3 or user_input_lower in ["có", "ok", "ừ", "vâng"]:
         return "Dạ, bạn muốn tìm sản phẩm nào cho bé nhà mình nhỉ? Mình có áo, váy, quần cho chó và mèo, giá từ 150k-300k! 😊"
 
-    # Prioritize intent matching
-    intent_response = detect_intent(user_input_normalized)
+    # Prioritize intent matching with context
+    intent_response = detect_intent(user_input_normalized, context)
     if intent_response:
         return intent_response
 
-    # Handle specific keywords
-    if user_input_lower in ["hi", "chào", "hello", "xin chào"]:
-        return "Chào bạn! Mình là trợ lý tư vấn quần áo thú cưng đây. Bạn muốn tìm sản phẩm nào cho bé nhà mình nhỉ? 😊"
-
-    if user_input_lower in ["cảm ơn", "thank you", "cám ơn"]:
-        return "Không có gì đâu bạn! Nếu cần thêm gì, cứ nói với mình nhé! 😄"
-
+    # Fallback with keyword-based handling and product-based response
     price_max, color, category, pet_type, size, material, location = extract_query_info(user_input_normalized)
 
+    # Handle product inquiry specifically
+    if any(key in user_input_lower for key in ["có", "tìm", "đâu", "có không"]) and \
+       any(cat in user_input_lower for cat in ["áo", "váy", "quần", "yếm", "áo khoác"]):
+        products = recommend_products(price_max, color, category, pet_type, size, material)
+        if products:
+            product_list = ", ".join([f"{p['name']} (Giá: {p['price']} VNĐ, Màu: {p['color']})" for p in products])
+            return f"Dạ, shop có {product_list}. Bạn muốn mình gửi hình chi tiết hay chốt đơn luôn không? 😊"
+        else:
+            return f"Xin lỗi bạn nha, hiện tại shop chưa có {category or 'sản phẩm'} {pet_type or ''} {color or ''} {size or ''}. Bạn thử tìm mẫu khác không? 😊"
+
     if any(keyword in user_input_lower for keyword in ["giặt", "bảo quản", "phơi"]):
-        prompt = f"Hướng dẫn ngắn gọn cách bảo quản {category or 'quần áo thú cưng'}, trả lời tự nhiên như nhân viên bán hàng."
-        full_response = generator(prompt, max_new_tokens=150, truncation=True, num_return_sequences=1)[0]['generated_text']
-        response = full_response.replace(prompt, "").strip()
-        if response and response[-1] not in ".!?":
-            response += "."
-        return response or "Nên giặt tay với nước mát, tránh chất tẩy mạnh và phơi nơi thoáng mát để giữ form quần áo nhé! 😊"
+        intent = next((i for i in training_data.get("intents", []) if i["intent"] == "ask_care_instructions"), None)
+        if intent:
+            response = random.choice(intent["responses"])
+            response = response.replace("{clothing_type}", category or "quần áo")
+            return response or "Nên giặt tay với nước mát, tránh chất tẩy mạnh và phơi nơi thoáng mát nhé! 😊"
 
     if any(keyword in user_input_lower for keyword in ["giao hàng", "bao lâu", "phí ship", "khi nào tới"]):
-        prompt = f"Thông báo thời gian giao hàng và phí ship{(f' cho {location}' if location else '')}, trả lời tự nhiên như nhân viên bán hàng."
-        full_response = generator(prompt, max_new_tokens=150, truncation=True, num_return_sequences=1)[0]['generated_text']
-        response = full_response.replace(prompt, "").strip()
-        if response and response[-1] not in ".!?":
-            response += "."
-        return response or f"Bạn ở {location or 'khu vực của bạn'} thì hàng sẽ tới trong 1-2 ngày, phí ship 30k, miễn phí cho đơn từ 500k nha! 😊"
+        intent = next((i for i in training_data.get("intents", []) if i["intent"] == "ask_delivery_time"), None)
+        if intent:
+            response = random.choice(intent["responses"])
+            response = response.replace("{location}", location or "bạn")
+            return response or f"Bạn ở {location or 'khu vực của bạn'} thì hàng sẽ tới trong 1-2 ngày, phí ship 30k, miễn phí cho đơn từ 500k nha! 😊 (Hôm nay là 07/06/2025, 03:13 PM)"
 
     products = recommend_products(price_max, color, category, pet_type, size, material)
     if products:
@@ -177,4 +227,5 @@ def chat():
     return jsonify({"response": response})
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
