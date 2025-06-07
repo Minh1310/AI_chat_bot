@@ -10,10 +10,19 @@ from collections import deque
 app = Flask(__name__)
 CORS(app)
 
-# Load model
-model_name = "vinai/bartpho-word"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-generator = pipeline("text2text-generation", model=model_name, tokenizer=tokenizer)
+# Lazy loading model (only load when first request comes)
+model = None
+tokenizer = None
+generator = None
+
+def load_model():
+    global model, tokenizer, generator
+    if model is None:
+        model_name = "vinai/bartpho-word"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        generator = pipeline("text2text-generation", model=model, tokenizer=tokenizer)
+    return generator
 
 # Load and validate training data
 try:
@@ -164,6 +173,10 @@ def extract_query_info(user_input):
 
 # ==================== RESPONSE GENERATION ====================
 def generate_response(user_input):
+    global generator
+    if generator is None:
+        generator = load_model()
+
     user_input_normalized = unicodedata.normalize("NFKC", user_input.strip())
     user_input_lower = user_input_normalized.lower()
 
@@ -205,7 +218,7 @@ def generate_response(user_input):
         if intent:
             response = random.choice(intent["responses"])
             response = response.replace("{location}", location or "bạn")
-            return response or f"Bạn ở {location or 'khu vực của bạn'} thì hàng sẽ tới trong 1-2 ngày, phí ship 30k, miễn phí cho đơn từ 500k nha! 😊 (Hôm nay là 07/06/2025, 03:13 PM)"
+            return response or f"Bạn ở {location or 'khu vực của bạn'} thì hàng sẽ tới trong 1-2 ngày, phí ship 30k, miễn phí cho đơn từ 500k nha! 😊 (Hôm nay là 07/06/2025, 03:32 PM)"
 
     products = recommend_products(price_max, color, category, pet_type, size, material)
     if products:
